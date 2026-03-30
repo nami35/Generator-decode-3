@@ -3,6 +3,24 @@ import { Cloud, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 type Provider = 'aws' | 'gcp' | 'azure';
 
+const isFileTypeAccepted = (file: File, acceptedTypes: string) => {
+  if (!acceptedTypes.trim()) return true;
+  const types = acceptedTypes.split(',').map(t => t.trim().toLowerCase());
+  const fileType = file.type.toLowerCase();
+  const fileName = file.name.toLowerCase();
+
+  return types.some(type => {
+    if (type.startsWith('.')) {
+      return fileName.endsWith(type);
+    }
+    if (type.endsWith('/*')) {
+      const baseType = type.split('/')[0];
+      return fileType.startsWith(`${baseType}/`);
+    }
+    return fileType === type;
+  });
+};
+
 export default function CloudStorage() {
   const [provider, setProvider] = useState<Provider>('aws');
   const [file, setFile] = useState<File | null>(null);
@@ -34,6 +52,11 @@ export default function CloudStorage() {
     
     if (file.size > MAX_FILE_SIZE) {
       setResult({ success: false, error: 'File size exceeds the 50MB limit.' });
+      return;
+    }
+
+    if (acceptedMimeTypes.trim() && !isFileTypeAccepted(file, acceptedMimeTypes)) {
+      setResult({ success: false, error: `Invalid file type. Accepted types: ${acceptedMimeTypes}` });
       return;
     }
 
